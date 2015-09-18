@@ -1,9 +1,11 @@
 class RecipesController < ApplicationController
    
-   before_action :set_recipe, only: [:edit, :update, :show, :like]
+   before_action :set_recipe, only: [:edit, :update, :show, :like, :destroy]
    before_action :require_user, except: [:show, :index, :like]
    before_action :require_user_like, only: [:like]
    before_action :require_same_user, only: [:edit, :update]
+   before_action :admin_user, only: [:destroy]
+   
 
     def index
         @recipes = Recipe.paginate(page: params[:page], per_page: 4)
@@ -29,12 +31,7 @@ class RecipesController < ApplicationController
     end
     
     def edit
-       if logged_in? && @recipe.chef == current_user
-           render :edit
-       else
-           flash[:danger] = "You can not edit other chef's recipes"
-           redirect_to recipes_path
-       end
+      
     end
     
     def update
@@ -58,7 +55,11 @@ class RecipesController < ApplicationController
         
     end
     
-    
+    def destroy
+        @recipe.destroy
+        flash[:success] = "Recipe Deleted!"
+        redirect_to recipes_path
+    end
     
     private
     
@@ -71,7 +72,7 @@ class RecipesController < ApplicationController
         end
         
         def require_same_user 
-            if current_user != @recipe.chef
+            if current_user != @recipe.chef and !current_user.admin?
                flash[:danger] = "You can only edit your own recipes"
                redirect_to root_path
             end
@@ -81,6 +82,12 @@ class RecipesController < ApplicationController
             if !logged_in?
               flash[:danger] = "You must be logged in to perform that action"
               redirect_to :back
+            end
+        end
+        
+        def admin_user
+            if !current_user.admin?
+               redirect_to recipes_path 
             end
         end
 end
